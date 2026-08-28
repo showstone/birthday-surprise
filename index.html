@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎂 生日惊喜</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body { height: 100%; overflow: hidden; }
+
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+  }
+
+  /* ---------- 场景切换 ---------- */
+  .scene { transition: opacity .8s ease; }
+  .hidden { opacity: 0; pointer-events: none; }
+
+  /* ---------- 礼物盒场景 ---------- */
+  #gift-scene {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  #gift-hint {
+    color: rgba(255,255,255,.85); font-size: 18px; letter-spacing: 4px;
+    margin-top: 30px; animation: breathe 2s ease-in-out infinite;
+  }
+  @keyframes breathe { 0%,100%{opacity:.5} 50%{opacity:1} }
+
+  .giftbox { position: relative; width: 180px; }
+  .giftbox .box {
+    width: 180px; height: 140px; margin: 0 auto;
+    background: linear-gradient(#ff6b8a, #e84560);
+    border-radius: 8px;
+    box-shadow: 0 20px 40px rgba(0,0,0,.4);
+  }
+  .giftbox .lid {
+    width: 200px; height: 40px; margin: 0 auto;
+    background: linear-gradient(#ff8fa5, #ff6b8a);
+    border-radius: 6px;
+    box-shadow: 0 8px 20px rgba(0,0,0,.35);
+    position: relative; z-index: 2;
+    transition: transform 1s cubic-bezier(.34,1.56,.64,1);
+  }
+  .giftbox .ribbon-v {
+    position: absolute; left: 50%; top: 0; transform: translateX(-50%);
+    width: 26px; height: 140px;
+    background: repeating-linear-gradient(45deg, #ffd166, #ffd166 8px, #ffb703 8px, #ffb703 16px);
+    border-radius: 4px;
+  }
+  .giftbox .bow {
+    position: relative; width: 60px; height: 30px; margin: 0 auto 6px;
+  }
+  .giftbox .bow::before, .giftbox .bow::after {
+    content: ""; position: absolute; top: 0;
+    width: 28px; height: 28px;
+    border: 8px solid #ffd166; border-radius: 50% 50% 50% 0;
+  }
+  .giftbox .bow::before { left: 0;  transform: rotate(-45deg); }
+  .giftbox .bow::after  { right: 0; transform: rotate(45deg) scaleY(-1); }
+  #gift-scene.open .lid { transform: translateY(-120px) rotate(-15deg); }
+  #gift-scene.open .bow { animation: pop .6s ease forwards; }
+  @keyframes pop { to { transform: translateY(-120px) scale(1.2); opacity: 0; } }
+
+  /* ---------- 蛋糕场景 ---------- */
+  #cake-scene {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .cake { position: relative; width: 300px; }
+  .layer {
+    margin: 0 auto; border-radius: 10px;
+    box-shadow: inset 0 -12px 20px rgba(0,0,0,.15);
+  }
+  .layer-1 { width: 300px; height: 70px; background: linear-gradient(#f7a8b8, #ef7d94); }
+  .layer-2 { width: 240px; height: 60px; background: linear-gradient(#fff3e0, #ffe0b2); margin-top: -4px; }
+  .layer-3 { width: 180px; height: 50px; background: linear-gradient(#f7a8b8, #ef7d94); margin-top: -4px; }
+  .icing {
+    width: 190px; height: 22px; margin: 0 auto -8px;
+    background: radial-gradient(circle at 10px -6px, #fff 14px, transparent 15px);
+    background-size: 24px 24px; background-repeat: repeat-x;
+    position: relative; z-index: 2;
+  }
+  .plate {
+    width: 340px; height: 14px; margin: 6px auto 0;
+    background: linear-gradient(#e8e8e8, #bbb);
+    border-radius: 50%;
+  }
+  .candles { position: absolute; top: -46px; left: 0; width: 100%; display: flex; justify-content: center; gap: 30px; }
+  .candle { position: relative; width: 10px; height: 40px; border-radius: 3px;
+    background: repeating-linear-gradient(45deg, #6ec6ff 0 6px, #fff 6px 12px);
+  }
+  .flame {
+    position: absolute; left: 50%; top: -24px; transform: translateX(-50%);
+    width: 14px; height: 22px;
+    background: radial-gradient(#fff7ae 10%, #ffb703 55%, transparent 70%);
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    animation: flicker .18s ease-in-out infinite alternate;
+    cursor: pointer;
+  }
+  @keyframes flicker {
+    from { transform: translateX(-50%) scale(1) rotate(-2deg); }
+    to   { transform: translateX(-50%) scale(1.15) rotate(3deg); }
+  }
+  .candle.out .flame { display: none; }
+
+  #cake-hint { color: rgba(255,255,255,.8); margin-top: 34px; font-size: 16px; letter-spacing: 3px; }
+
+  /* ---------- 祝福文字 ---------- */
+  #wish {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: #fff; text-align: center; padding: 0 24px;
+  }
+  #wish h1 {
+    font-size: clamp(34px, 7vw, 72px);
+    background: linear-gradient(90deg, #ffd166, #ff6b8a, #6ec6ff, #ffd166);
+    background-size: 300% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: shine 4s linear infinite;
+    letter-spacing: 6px;
+  }
+  @keyframes shine { to { background-position: 300% 0; } }
+  #wish p {
+    margin-top: 22px; font-size: clamp(16px, 3vw, 22px);
+    color: rgba(255,255,255,.85); line-height: 2; letter-spacing: 2px;
+    max-width: 560px;
+  }
+  #wish .cursor { display: inline-block; width: 2px; height: 1em;
+    background: #ffd166; vertical-align: -2px; animation: blink .8s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  #replay {
+    margin-top: 40px; padding: 12px 34px; font-size: 15px; letter-spacing: 3px;
+    color: #ffd166; background: transparent;
+    border: 1px solid rgba(255,209,102,.6); border-radius: 999px;
+    cursor: pointer; transition: all .3s;
+  }
+  #replay:hover { background: rgba(255,209,102,.15); box-shadow: 0 0 24px rgba(255,209,102,.4); }
+
+  canvas#fireworks { position: fixed; inset: 0; pointer-events: none; }
+</style>
+</head>
+<body>
+
+  <!-- 场景一:礼物盒 -->
+  <div id="gift-scene" class="scene">
+    <div class="giftbox">
+      <div class="bow"></div>
+      <div class="lid"></div>
+      <div class="box"><div class="ribbon-v"></div></div>
+    </div>
+    <div id="gift-hint">点 击 拆 开 礼 物</div>
+  </div>
+
+  <!-- 场景二:蛋糕 -->
+  <div id="cake-scene" class="scene hidden">
+    <div class="cake">
+      <div class="candles" id="candles"></div>
+      <div class="icing"></div>
+      <div class="layer layer-3"></div>
+      <div class="layer layer-2"></div>
+      <div class="layer layer-1"></div>
+      <div class="plate"></div>
+    </div>
+    <div id="cake-hint">点 击 蜡 烛 , 许 个 愿 望 , 把 它 们 吹 灭</div>
+  </div>
+
+  <!-- 场景三:祝福 -->
+  <div id="wish" class="scene hidden">
+    <h1 id="wish-title"></h1>
+    <p><span id="wish-text"></span><span class="cursor"></span></p>
+    <button id="replay">再看一次</button>
+  </div>
+
+  <canvas id="fireworks"></canvas>
+
+<script>
+  // 默认祝福对象:阳昊宇(也可用 ?name=xxx 临时覆盖)
+  const name = new URLSearchParams(location.search).get("name") || "阳昊宇";
+  const TITLE = (name ? `祝 ${name} 生日快乐` : "生日快乐") + " 🎂";
+  const MESSAGE = "愿你的每一岁都能奔走在自己的热爱里,\n所求皆如愿,所行化坦途,\n多喜乐,长安宁。🎉";
+
+  const giftScene  = document.getElementById("gift-scene");
+  const cakeScene  = document.getElementById("cake-scene");
+  const wishScene  = document.getElementById("wish");
+  const candlesBox = document.getElementById("candles");
+  const CANDLE_COUNT = 5;
+  let candlesLeft = CANDLE_COUNT;
+
+  // ---------- 场景一 → 二:拆礼物 ----------
+  giftScene.addEventListener("click", () => {
+    if (giftScene.classList.contains("open")) return;
+    giftScene.classList.add("open");
+    setTimeout(() => {
+      giftScene.classList.add("hidden");
+      cakeScene.classList.remove("hidden");
+    }, 900);
+  }, { once: false });
+
+  // ---------- 场景二:蜡烛 ----------
+  for (let i = 0; i < CANDLE_COUNT; i++) {
+    const c = document.createElement("div");
+    c.className = "candle";
+    c.innerHTML = '<div class="flame"></div>';
+    c.querySelector(".flame").addEventListener("click", () => {
+      c.classList.add("out");
+      if (--candlesLeft === 0) setTimeout(showWish, 700);
+    });
+    candlesBox.appendChild(c);
+  }
+
+  // ---------- 场景三:打字机祝福 + 烟花 ----------
+  function showWish() {
+    cakeScene.classList.add("hidden");
+    wishScene.classList.remove("hidden");
+    startFireworks();
+    typeText(document.getElementById("wish-title"), TITLE, 120).then(() =>
+      typeText(document.getElementById("wish-text"), MESSAGE, 60)
+    );
+  }
+
+  function typeText(el, text, speed) {
+    return new Promise(resolve => {
+      el.textContent = "";
+      let i = 0;
+      (function tick() {
+        if (i < text.length) {
+          el.textContent += text[i++] === "\n" ? "\n" : text[i - 1];
+          el.style.whiteSpace = "pre-line";
+          setTimeout(tick, speed);
+        } else resolve();
+      })();
+    });
+  }
+
+  document.getElementById("replay").addEventListener("click", () => location.reload());
+
+  // ---------- 烟花 ----------
+  const canvas = document.getElementById("fireworks");
+  const ctx = canvas.getContext("2d");
+  let particles = [], rafId = null;
+
+  function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
+  addEventListener("resize", resize); resize();
+
+  function burst(x, y) {
+    const hue = Math.random() * 360;
+    for (let i = 0; i < 80; i++) {
+      const a = Math.random() * Math.PI * 2, v = 2 + Math.random() * 4;
+      particles.push({
+        x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v,
+        life: 60 + Math.random() * 40, age: 0,
+        color: `hsl(${hue + Math.random() * 40 - 20},100%,${55 + Math.random() * 20}%)`,
+        size: 1.5 + Math.random() * 2
+      });
+    }
+  }
+
+  function loop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles = particles.filter(p => p.age < p.life);
+    if (particles.length || Math.random() < .02) {
+      for (const p of particles) {
+        p.x += p.vx; p.y += p.vy; p.vy += .04; p.vx *= .985; p.age++;
+        ctx.globalAlpha = 1 - p.age / p.life;
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function startFireworks() {
+    if (rafId) return;
+    burst(innerWidth * .3, innerHeight * .3);
+    burst(innerWidth * .7, innerHeight * .25);
+    setInterval(() => {
+      if (!document.hidden)
+        burst(innerWidth * (.15 + Math.random() * .7), innerHeight * (.1 + Math.random() * .4));
+    }, 1400);
+    loop();
+  }
+</script>
+</body>
+</html>
