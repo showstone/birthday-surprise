@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>❤ 李可人</title>
+<style>
+  * { margin: 0; padding: 0; }
+  html, body {
+    height: 100%; overflow: hidden;
+    background: #000;
+    touch-action: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  canvas { position: fixed; inset: 0; display: block; }
+  #hint {
+    position: fixed; bottom: 8%; left: 0; right: 0;
+    text-align: center; color: rgba(255,255,255,.55);
+    font-size: 14px; letter-spacing: 3px;
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    animation: hintFade 4.5s ease forwards;
+    pointer-events: none;
+  }
+  @keyframes hintFade {
+    0% { opacity: 0; } 15% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; }
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<canvas id="fx"></canvas>
+<div id="hint">轻 点 屏 幕 ♥</div>
+<script>
+  // ===== 可自定义 =====
+  const NAME    = "李可人";        // 中央显示的名字
+  const MESSAGE = "余生请多指教";   // 名字下方的一句话
+  const COLOR   = "#ff2121";       // 爱心颜色(#ff69b4 = 粉色)
+  // ====================
+
+  const canvas = document.getElementById("c");
+  const fxCanvas = document.getElementById("fx");
+  const ctx = canvas.getContext("2d");
+  const fx = fxCanvas.getContext("2d");
+  const PI = Math.PI;
+
+  let W, H, CX, CY, SCALE;
+  let edgePts = [], innerPts = [];
+
+  function heartFn(t, scale) {
+    const x = 16 * Math.pow(Math.sin(t), 3);
+    const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+    return [CX + x * scale, CY + y * scale];
+  }
+
+  function scatter(x, y, beta) {
+    return [
+      x - (-beta * Math.log(Math.random())) * (x - CX),
+      y - (-beta * Math.log(Math.random())) * (y - CY)
+    ];
+  }
+
+  function curve(p) { return 2 * (2 * Math.sin(4 * p)) / (2 * PI); }
+
+  function build() {
+    edgePts = []; innerPts = [];
+    for (let i = 0; i < 1500; i++) {
+      const t = Math.random() * 2 * PI;
+      const [x, y] = heartFn(t, SCALE);
+      edgePts.push([x, y]);
+    }
+    for (let i = 0; i < 5000; i++) {
+      const [px, py] = edgePts[(Math.random() * edgePts.length) | 0];
+      const [x, y] = scatter(px, py, 0.17);
+      innerPts.push([x, y]);
+    }
+  }
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    for (const [cv, c] of [[canvas, ctx], [fxCanvas, fx]]) {
+      cv.width = W * dpr; cv.height = H * dpr;
+      cv.style.width = W + "px"; cv.style.height = H + "px";
+      c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    CX = W / 2;
+    CY = H / 2;
+    SCALE = Math.min(W / 42, H / 40);
+    build();
+  }
+
+  function drawScaled(pts, s, sizeMax) {
+    ctx.fillStyle = COLOR;
+    for (let i = 0; i < pts.length; i++) {
+      const x = CX + (pts[i][0] - CX) * s + (Math.random() * 2 - 1);
+      const y = CY + (pts[i][1] - CY) * s + (Math.random() * 2 - 1);
+      const sz = 1 + ((Math.random() * sizeMax) | 0);
+      ctx.fillRect(x, y, sz, sz);
+    }
+  }
+
+  let last = 0, step = 0;
+  function loop(ts) {
+    if (ts - last > 90) { last = ts; step++; renderMain(); }
+    updateFloats();
+    requestAnimationFrame(loop);
+  }
+
+  function renderMain() {
+    ctx.clearRect(0, 0, W, H);
+    const p = (step % 20) / 10 * PI;
+    const beat = curve(p);
+    const s = 1 + beat * 0.13;
+    const glow = 1 + 0.06 * beat;
+
+    ctx.globalAlpha = 0.55;
+    const haloN = 500;
+    for (let i = 0; i < haloN; i++) {
+      const t = Math.random() * 2 * PI;
+      const [hx, hy] = heartFn(t, SCALE * 1.12 * glow);
+      const x = hx + (Math.random() * 28 - 14);
+      const y = hy + (Math.random() * 28 - 14);
+      ctx.fillStyle = COLOR;
+      ctx.fillRect(x, y, Math.random() < 0.5 ? 1 : 2, Math.random() < 0.5 ? 1 : 2);
+    }
+
+    ctx.globalAlpha = 1;
+    drawScaled(edgePts, s, 2);
+    ctx.globalAlpha = 0.85;
+    drawScaled(innerPts, s, 1);
+
+    if (NAME) {
+      const fs = Math.max(18, Math.min(W * 0.09, 42)) * (1 + beat * 0.06);
+      const nameY = CY + SCALE * 2;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.shadowColor = COLOR;
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold " + fs + "px 'PingFang SC', 'Microsoft YaHei', sans-serif";
+      ctx.fillText(NAME, CX, nameY);
+
+      if (MESSAGE) {
+        const fs2 = fs * 0.52;
+        ctx.globalAlpha = 0.7 + 0.25 * (beat + 1) / 2;
+        ctx.font = fs2 + "px 'PingFang SC', 'Microsoft YaHei', sans-serif";
+        ctx.fillText(MESSAGE, CX, nameY + fs * 1.15);
+        ctx.globalAlpha = 1;
+      }
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  /* ---------- 点击飘心 ---------- */
+  const floats = [];
+  const FLOAT_COLORS = ["#ff2121", "#ff4d6d", "#ff69b4", "#ff8fa5"];
+
+  function drawMiniHeart(x, y, size, color, alpha, rot) {
+    fx.save();
+    fx.translate(x, y);
+    fx.rotate(rot);
+    fx.scale(size / 16, size / 16);
+    fx.globalAlpha = alpha;
+    fx.fillStyle = color;
+    fx.beginPath();
+    for (let i = 0; i <= 30; i++) {
+      const t = (i / 30) * 2 * PI;
+      const px = 16 * Math.pow(Math.sin(t), 3);
+      const py = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+      if (i === 0) fx.moveTo(px, py); else fx.lineTo(px, py);
+    }
+    fx.closePath();
+    fx.fill();
+    fx.restore();
+  }
+
+  function spawnHearts(x, y, n) {
+    for (let i = 0; i < n; i++) {
+      floats.push({
+        x: x + (Math.random() * 40 - 20),
+        y: y + (Math.random() * 10 - 5),
+        size: 8 + Math.random() * 14,
+        vy: -(0.6 + Math.random() * 1.2),
+        sway: Math.random() * 2 * PI,
+        swaySpd: 0.02 + Math.random() * 0.04,
+        swayAmp: 0.3 + Math.random() * 0.5,
+        rot: (Math.random() - 0.5) * 0.6,
+        rotSpd: (Math.random() - 0.5) * 0.01,
+        life: 1,
+        fade: 0.004 + Math.random() * 0.004,
+        color: FLOAT_COLORS[(Math.random() * FLOAT_COLORS.length) | 0],
+      });
+    }
+    if (floats.length > 150) floats.splice(0, floats.length - 150);
+  }
+
+  function updateFloats() {
+    fx.clearRect(0, 0, W, H);
+    for (let i = floats.length - 1; i >= 0; i--) {
+      const f = floats[i];
+      f.y += f.vy;
+      f.sway += f.swaySpd;
+      f.x += Math.sin(f.sway) * f.swayAmp;
+      f.rot += f.rotSpd;
+      f.life -= f.fade;
+      if (f.life <= 0 || f.y < -40) { floats.splice(i, 1); continue; }
+      drawMiniHeart(f.x, f.y, f.size, f.color, f.life, f.rot);
+    }
+  }
+
+  window.addEventListener("pointerdown", e => spawnHearts(e.clientX, e.clientY, 5));
+  window.addEventListener("resize", resize);
+  resize();
+  requestAnimationFrame(loop);
+</script>
+</body>
+</html>
